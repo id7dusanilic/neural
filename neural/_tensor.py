@@ -1,6 +1,16 @@
+import logging
 import numpy as np
 
+
 class Tensor(np.ndarray):
+    """ A numpy array with some additional attributes.
+
+    Tensor.grad         gradient of the vector computed automatically
+                        after backward-propagation
+    Tensor.gradFn       Function used to compute current vector
+    Tensor.requiresGrad If `True` gradient for this Tensor will be
+                        calculated during backward-propagation
+    """
 
     def __new__(cls, inputArray, requiresGrad=False):
         obj = np.asarray(inputArray).view(cls)
@@ -24,5 +34,8 @@ class Tensor(np.ndarray):
         return result
 
     def backward(self, gradient):
-        if self.gradFn is not None:
+        logging.info(f"Reached tensor while backward-propagating")
+        logging.debug(self)
+        self.grad = gradient
+        if self.gradFn is not None and self.requiresGrad:
             self.gradFn.backward(gradient)
