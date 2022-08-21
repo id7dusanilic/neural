@@ -27,6 +27,14 @@ class _Layer:
         result = self._forward(input_)
         return result
 
+    def __str__(self):
+        result = f"{self.__class__.__name__}("
+        for k, v in self.__dict__.items():
+            if not isinstance(v, Tensor):
+                result += f"{k}={v}, "
+        result = f"{result[:-2]})"
+        return result
+
 
 class Linear(_Layer):
     """ Applies a linear transformation to the incoming data y = x@A.T + b """
