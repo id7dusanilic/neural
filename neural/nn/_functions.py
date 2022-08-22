@@ -118,7 +118,11 @@ class LogSoftmax(_Function):
     def _forward(self, input_: Tensor) -> Tensor:
 
         def softmax(input_, dim):
-            return np.exp(input_) / np.sum(np.exp(input_), axis=1)
+            exps = np.exp(input_)
+            sum_ = np.sum(exps, axis=self.dim)
+            shape_ = list(sum_.shape)
+            shape_.insert(dim, 1)
+            return exps / sum_.reshape(shape_)
 
         softmax_ = softmax(input_, self.dim)
         self.saveForBackward(softmax_)
@@ -126,6 +130,18 @@ class LogSoftmax(_Function):
         return Tensor(result)
 
     def _backward(self, gradient: Tensor) -> Tensor:
-        softmax, = self.getContext()
-        jcb = np.eye(softmax.shape[self.dim]) - softmax
-        return Tensor(np.matmul(gradient, jcb)), 
+        def formJcb(s):
+            return np.eye(s.size) - s
+
+        softmax_, = self.getContext()
+        softmax_ = softmax_.swapaxes(-1, self.dim)
+        resultsShape = softmax_.shape
+        softmax_ = softmax_.reshape(-1, softmax_.shape[-1])
+        gradient_ = gradient.swapaxes(-1, self.dim)
+        gradient_ = gradient_.reshape(-1, gradient_.shape[-1])
+
+        results = list()
+        for s, grad in zip(softmax_, gradient_):
+            results.append(np.matmul(grad, formJcb(s)))
+
+        return Tensor(results).reshape(resultsShape).swapaxes(-1, self.dim),
