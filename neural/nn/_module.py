@@ -14,7 +14,7 @@ class Module:
         self.__dict__[attrName] = attrValue
 
         if isinstance(attrValue, _Layer):
-            self.parameters.append(attrValue.parameters())
+            self.parameters += attrValue.parameters()
 
         if isinstance(attrValue, (_Layer, _Function)):
             self.layers.append(self.__dict__[attrName])
