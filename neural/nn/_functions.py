@@ -43,6 +43,7 @@ class _Function:
     def backward(self, gradient: Tensor):
         logging.info(f"Reached function {type(self).__name__} while backward-propagating.")
         logging.info(f"Input gradient is {gradient}")
+        logging.info(f"Input gradient shape is {gradient.shape}")
         # Calculating gradient for each input
         outGradient = self._backward(gradient)
         logging.info(f"{type(self).__name__}._backward() returned {outGradient}")

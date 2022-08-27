@@ -44,7 +44,7 @@ class Linear(_Layer):
 
         @param inSize   size of each input sample
         @param outSize  size of each output sample
-        @param bias     If set to `False`m the layer will not include an additive bias
+        @param bias     If set to `False` the layer will not include an additive bias
         """
         super().__init__()
 
