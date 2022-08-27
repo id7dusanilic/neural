@@ -95,13 +95,17 @@ class MatMul(_Function):
     def _forward(self, left: Tensor, right: Tensor) -> Tensor:
         left_ = left.T if self.leftT else left
         right_ = right.T if self.rightT else right
-        self.saveForBackward(left_, right_)
+        self.saveForBackward(left_.T, right_.T)
         mul = np.matmul(left_, right_)
         return Tensor(mul)
 
     def _backward(self, gradient: Tensor) -> Tensor:
-        jcbRight, jcbLeft = self.getContext()
-        return Tensor(np.matmul(jcbLeft, gradient.T)), Tensor(np.matmul(gradient.T, jcbRight))
+        left, right = self.getContext()
+        gradientLeft = np.matmul(gradient, right)
+        gradientLeft = gradientLeft.T if self.leftT else gradientLeft
+        gradientRight = np.matmul(left, gradient)
+        gradientRight = gradientRight.T if self.rightT else gradientRight
+        return gradientLeft, gradientRight
 
 
 class LogSoftmax(_Function):
