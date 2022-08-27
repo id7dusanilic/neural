@@ -140,13 +140,14 @@ class LogSoftmax(_Function):
 
         softmax_, = self.getContext()
         softmax_ = softmax_.swapaxes(-1, self.dim)
-        resultsShape = softmax_.shape
+        gradientsShape = softmax_.shape
         softmax_ = softmax_.reshape(-1, softmax_.shape[-1])
         gradient_ = gradient.swapaxes(-1, self.dim)
         gradient_ = gradient_.reshape(-1, gradient_.shape[-1])
 
-        results = list()
+        gradients = list()
         for s, grad in zip(softmax_, gradient_):
-            results.append(np.matmul(grad, formJcb(s)))
+            gradients.append(np.matmul(grad, formJcb(s)))
 
-        return Tensor(results).reshape(resultsShape).swapaxes(-1, self.dim),
+        return Tensor(gradients).reshape(gradientsShape).swapaxes(-1, self.dim),
+
