@@ -34,5 +34,4 @@ class Module:
         Needs to be redefined for each derived class.
         Should not be called directly.
         """
-        pass
-
+        raise NotImplementedError

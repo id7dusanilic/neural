@@ -21,7 +21,7 @@ class _Layer:
         Needs to be redefiend for each derived class.
         Should not be called directly.
         """
-        pass
+        raise NotImplementedError
 
     def __call__(self, input_: Tensor) -> Tensor:
         result = self._forward(input_)

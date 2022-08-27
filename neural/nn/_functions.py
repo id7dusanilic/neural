@@ -25,7 +25,7 @@ class _Function:
 
         Should take a number of inputs, and return an output tensor.
         """
-        pass
+        raise NotImplementedError
 
     def _backward(self, gradient: Tensor) -> Tensor:
         """ Defines the formula for differentiating the operation for
@@ -37,7 +37,7 @@ class _Function:
         Should return a tensor for each input that is passed to the
         _forward method.
         """
-        pass
+        raise NotImplementedError
 
     def backward(self, gradient: Tensor):
         logging.info(f"Reached function {type(self).__name__} while backward-propagating.")
