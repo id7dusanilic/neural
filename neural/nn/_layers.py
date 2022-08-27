@@ -1,7 +1,7 @@
 import numpy as np
 
 from .. import Tensor
-from ._functions import *
+from ._operations import MatMul, Add
 
 
 class _Layer:

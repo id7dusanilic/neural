@@ -1,4 +1,4 @@
-from ._functions import LogSoftmax, ReLU, Sigmoid
+from ._activation import LogSoftmax, ReLU, Sigmoid
 from ._layers import Linear
 from ._module import Module
 
