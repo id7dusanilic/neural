@@ -6,7 +6,7 @@ from ._functions import *
 
 class _Layer:
     """ Meta class used for creating neural network layers. """
-    
+
     def parameters(self):
         """ Returns a list of all parameters of the layer that
         need to be optimized.
@@ -58,7 +58,7 @@ class Linear(_Layer):
 
     def parameters(self):
         return [self.weight, self.bias] if self._bias else [self.weight]
-    
+
     def _forward(self, input_: Tensor) -> Tensor:
         mul = MatMul(rightT=True)(input_, self.weight)
         result = Add()(mul, self.bias) if self._bias else mul

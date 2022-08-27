@@ -17,7 +17,7 @@ class _Function:
     def getContext(self) -> list:
         """ Returns previously saved arguments with the saveForBackward function. """
         return self._ctx
-    
+
     def _forward(self, *args) -> Tensor:
         """ Performs the operation of the function.
 
@@ -27,7 +27,7 @@ class _Function:
         Should take a number of inputs, and return an output tensor.
         """
         pass
-        
+
     def _backward(self, gradient: Tensor) -> Tensor:
         """ Defines the formula for differentiating the operation for
         backward-propagation.
@@ -113,7 +113,7 @@ class LogSoftmax(_Function):
 
     def __init__(self, dim):
         """ LogSoftmax function constructor.
-        
+
         @param dim  axis along which the sum is calculated
         """
         super().__init__()
@@ -150,4 +150,30 @@ class LogSoftmax(_Function):
             gradients.append(np.matmul(grad, formJcb(s)))
 
         return Tensor(gradients).reshape(gradientsShape).swapaxes(-1, self.dim),
+
+
+class Sigmoid(_Function):
+
+    def _forward(self, input_: Tensor) -> Tensor:
+        result_ = 1 / (1 + np.exp(-input_))
+        self.saveForBackward(result_)
+        return result_
+
+    def _backward(self, gradient: Tensor) -> Tensor:
+        sigmoid, = self.getContext()
+        grad = sigmoid*(1-sigmoid)
+        return Tensor(gradient*grad),
+
+
+class ReLU(_Function):
+
+    def _forward(self, input_: Tensor) -> Tensor:
+        result_ = np.piecewise(input_, [input_ < 0, input_ >= 0], [lambda x: 0, lambda x: x])
+        self.saveForBackward(result_)
+        return result_
+
+    def _backward(self, gradient: Tensor) -> Tensor:
+        result_, = self.getContext()
+        grad = (result_ > 0).astype(float)
+        return Tensor(gradient*grad),
 
