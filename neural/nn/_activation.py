@@ -19,7 +19,8 @@ class LogSoftmax(_Function):
     def _forward(self, input_: Tensor) -> Tensor:
 
         def softmax(input_, dim):
-            exps = np.exp(input_)
+            shifted = input_ - np.max(input_) # LogSumExp trick
+            exps = np.exp(shifted)
             sum_ = np.sum(exps, axis=self.dim)
             shape_ = list(sum_.shape)
             shape_.insert(dim, 1)
