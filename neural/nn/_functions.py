@@ -14,8 +14,10 @@ class _Function:
         self._ctx += list(args)
 
     def getContext(self) -> list:
-        """ Returns previously saved arguments with the saveForBackward function. """
-        return self._ctx
+        """ Returns previously saved arguments and clear the list. """
+        ctx = list(self._ctx)
+        self._ctx = list()
+        return ctx
 
     def _forward(self, *args) -> Tensor:
         """ Performs the operation of the function.
