@@ -14,8 +14,25 @@ class Add(_Function):
 
     def _backward(self, gradient: Tensor) -> Tensor:
         left, right = self.getContext()
-        jcbLeft, jcbRight = np.ones_like(left), np.ones_like(right)
-        return Tensor(gradient*jcbLeft), Tensor(gradient*jcbRight)
+        gradientLeft = Tensor(gradient*np.ones_like(left))
+        gradientRight = Tensor(gradient*np.ones_like(right))
+
+        def collapseIfNeccesary(x, grad):
+            # Broadcasting happened because left.shape != right.shape
+            if x.shape != grad.shape:
+                shape_ = np.ones_like(x.shape if x.ndim > grad.ndim else grad.shape)
+                xShape = shape_.copy(); xShape[-len(x.shape):] = x.shape
+                gradShape = shape_.copy(); gradShape[-len(grad.shape):] = grad.shape
+                axis_ = np.argwhere(np.array(xShape) != np.array(gradShape))
+                axis_ = axis_.item() if axis_.size == 1 else None
+                grad = np.sum(grad, axis=axis_) if axis_ is not None else grad
+
+            return grad
+
+        gradientLeft = collapseIfNeccesary(left, gradientLeft)
+        gradientRight = collapseIfNeccesary(right, gradientRight)
+
+        return gradientLeft, gradientRight
 
 
 class MatMul(_Function):
