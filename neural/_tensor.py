@@ -33,9 +33,11 @@ class Tensor(np.ndarray):
             result += f", gradFn={type(self.gradFn).__name__}"
         return result
 
-    def backward(self, gradient):
+    def backward(self, gradient=None):
         logging.info(f"Reached tensor while backward-propagating")
         logging.debug(self)
+        if gradient is None:
+            gradient = Tensor(np.ones_like(self))
         self.grad = gradient
         if self.gradFn is not None and self.requiresGrad:
             self.gradFn.backward(gradient)
