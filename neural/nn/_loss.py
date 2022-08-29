@@ -9,14 +9,15 @@ class NLLLoss(_Function):
 
     def _forward(self, input_: Tensor, target: Tensor) -> Tensor:
         self.saveForBackward(input_, target)
-        result_ = -input_[:, target]
+        result_ = -input_[np.arange(input_.shape[0]), target]
         return Tensor(result_)
 
     def _backward(self, gradient: Tensor) -> Tensor:
         input_, target = self.getContext()
         grad = np.zeros_like(input_)
-        grad[:, target] = -1
-        return Tensor(grad),
+        grad[np.arange(input_.shape[0]), target] = -1
+        return Tensor(grad*gradient),
+
 
 class CrossEntropyLoss:
 
