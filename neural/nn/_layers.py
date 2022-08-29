@@ -7,13 +7,13 @@ from ._operations import MatMul, Add
 class _Layer:
     """ Meta class used for creating neural network layers. """
 
-    def parameters(self):
+    def parameters(self) -> list:
         """ Returns a list of all parameters of the layer that
         need to be optimized.
 
         Needs to be redefined for each derived class.
         """
-        return None
+        raise NotImplementedError
 
     def _forward(self, input_: Tensor) -> Tensor:
         """ Performs the operation of the layer.
