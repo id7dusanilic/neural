@@ -41,3 +41,15 @@ class Tensor(np.ndarray):
         self.grad = gradient
         if self.gradFn is not None and self.requiresGrad:
             self.gradFn.backward(gradient)
+
+    def zeroGrad(self, setToNone: bool = False):
+        if setToNone:
+            self.grad = None
+        else:
+            if self.grad is not None:
+                self.grad[:] = 0
+            else:
+                self.grad = Tensor(np.zeros_like(self))
+
+    def clearGradFn(self):
+        self.gradFn = None
