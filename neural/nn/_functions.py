@@ -4,17 +4,33 @@ from .. import Tensor
 
 
 class _Function:
-    """ Meta class used for creating custom functions that support auto backward-propagation. """
+    """ Meta class used for creating custom functions that
+    support auto backward-propagation.
 
-    def __init__(self):
+    Usage:
+        Minimal usage requires the user to define the _forward
+        and _backward methods in the derived class.
+        The implemented function is then called by making calls
+        with the created object.
+    """
+
+    def __init__(self) -> None:
         self._ctx = list()
 
-    def saveForBackward(self, *args):
-        """ Saves the arguments so they can be used for backward call. """
+    def saveForBackward(self, *args) -> None:
+        """ Saves the arguments so they can be used for backward call.
+
+        Args:
+            args: Any object that is needed in the backward-pass.
+        """
         self._ctx += list(args)
 
     def getContext(self) -> list:
-        """ Returns previously saved arguments and clear the list. """
+        """ Get previously saved arguments and clear the list.
+
+        Returns:
+            List of all previously saved arguments.
+        """
         ctx = list(self._ctx)
         self._ctx = list()
         return ctx
@@ -22,26 +38,36 @@ class _Function:
     def _forward(self, *args) -> Tensor:
         """ Performs the operation of the function.
 
-        Needs to be redefiend for each derived class.
-        Should not be called directly.
+        Usage:
+            Needs to be redefiend for each derived class.
+            Should not be called directly.
 
-        Should take a number of inputs, and return an output tensor.
+        Args:
+            args: One or more Tensors.
+
+        Returns:
+            Tensor that represents the result of the operation.
         """
         raise NotImplementedError
 
-    def _backward(self, gradient: Tensor) -> Tensor:
-        """ Defines the formula for differentiating the operation for
-        backward-propagation.
+    def _backward(self, gradient: Tensor) -> tuple:
+        """ Defines the formula for differentiating the
+        operation for backward-propagation.
 
-        Needs to be redefined for each derived class.
-        Should not be called directly.
+        Usage:
+            Needs to be redefiend for each derived class.
+            Should not be called directly.
 
-        Should return a tensor for each input that is passed to the
-        _forward method.
+        Args:
+            gradient (Tensor): Gradient at the output.
+
+        Returns:
+            A tuple of Tensors for each argument passed
+            to the _forward method via the args argument.
         """
         raise NotImplementedError
 
-    def backward(self, gradient: Tensor):
+    def backward(self, gradient: Tensor) -> None:
         logging.info(f"Reached function {type(self).__name__} while backward-propagating.")
         logging.debug(f"Input gradient is {gradient}")
         logging.debug(f"Input gradient shape is {gradient.shape}")

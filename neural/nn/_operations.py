@@ -5,14 +5,21 @@ from ._functions import _Function
 
 
 class Add(_Function):
-    """ Applies addition of two Tensors. """
+    """ Applies addition of two Tensors out = left + right.
+
+    Shape:
+        Input:  both operands should have the same dimension, or
+                they have to be broadcastable to a common dimension.
+        Output: same as the input operands, or the common
+                broadcastable dimension.
+    """
 
     def _forward(self, left: Tensor, right: Tensor) -> Tensor:
         self.saveForBackward(left, right)
         add = left + right
         return Tensor(add)
 
-    def _backward(self, gradient: Tensor) -> Tensor:
+    def _backward(self, gradient: Tensor) -> tuple:
         left, right = self.getContext()
         gradientLeft = Tensor(gradient*np.ones_like(left))
         gradientRight = Tensor(gradient*np.ones_like(right))
@@ -36,14 +43,18 @@ class Add(_Function):
 
 
 class MatMul(_Function):
-    """ Applies matrix multiplication of two Tensors, with option to prior transpose either. """
+    """ Applies matrix multiplication of two Tensors,
+    with option to prior transpose either. out = left(.T)@right(.T)
 
-    def __init__(self, leftT: bool = False, rightT: bool = False):
-        """ MatMul function constructor.
+    Shapes:
+        Input: dimensions suitable for matrix multiplicaiton.
 
-        @param leftT    if `True` left matrix will be transposed prior to multiplication
-        @param rightT   if `True` right matrix will be transposed prior to multiplication
-        """
+    Args:
+        leftT (bool): if True left matrix will be transposed prior to multiplication
+        rightT (bool): if True right matrix will be transposed prior to multiplication
+    """
+
+    def __init__(self, leftT: bool = False, rightT: bool = False) -> None:
         super().__init__()
 
         self.leftT = leftT
@@ -56,7 +67,7 @@ class MatMul(_Function):
         mul = np.matmul(left_, right_)
         return Tensor(mul)
 
-    def _backward(self, gradient: Tensor) -> Tensor:
+    def _backward(self, gradient: Tensor) -> tuple:
         left, right = self.getContext()
         gradientLeft = np.matmul(gradient, right)
         gradientLeft = gradientLeft.T if self.leftT else gradientLeft
