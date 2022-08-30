@@ -33,6 +33,21 @@ class Module:
         for param in self.parameters:
             param.zeroGrad(setToNone)
 
+    @staticmethod
+    def save(module, filename: str) -> None:
+        with open(filename, "wb") as f:
+            import pickle
+            import copy
+            module_ = copy.deepcopy(module)
+            module_.zeroGrad()
+            pickle.dump(module, f)
+
+    @staticmethod
+    def load(filename: str) -> None:
+        with open(filename, "rb") as f:
+            import pickle
+            return pickle.load(f)
+
     def forward(self, input_: Tensor) -> Tensor:
         """ Calculates the output of the module.
 
