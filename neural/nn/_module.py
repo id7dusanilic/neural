@@ -28,6 +28,11 @@ class Module:
     def __len__(self):
         return len(self.layers)
 
+    def zeroGrad(self, setToNone: bool = False):
+        """ Sets the gradients of all parameter `Tensor`s to zero. """
+        for param in self.parameters:
+            param.zeroGrad(setToNone)
+
     def forward(self, input_: Tensor) -> Tensor:
         """ Calculates the output of the module.
 
