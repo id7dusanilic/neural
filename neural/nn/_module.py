@@ -26,8 +26,8 @@ class Module:
         if isinstance(attrValue, (_Layer, _Function)):
             self._layers.append(self.__dict__[attrName])
 
-    def __call__(self, input_: Tensor) -> Tensor:
-        return self.forward(input_)
+    def __call__(self, x: Tensor) -> Tensor:
+        return self.forward(x)
 
     def __getitem__(self, i: int):
         return self._layers[i]
@@ -73,7 +73,7 @@ class Module:
             import pickle
             return pickle.load(f)
 
-    def forward(self, input_: Tensor) -> Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         """ Computes the output of the module.
 
         Usage:
@@ -81,7 +81,7 @@ class Module:
             Should not be called directly.
 
         Args:
-            input_ (Tensor): input Tensor
+            x (Tensor): input Tensor
 
         Returns:
             Tensor that represents the output of the module.

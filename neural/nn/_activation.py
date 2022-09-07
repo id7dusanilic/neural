@@ -21,9 +21,9 @@ class F_LogSoftmax(_Function):
     """
 
     @staticmethod
-    def _forward(ctx, input_: Tensor, /, *, dim: int = 1) -> Tensor:
+    def _forward(ctx, x: Tensor, /, *, dim: int = 1) -> Tensor:
 
-        def softmax(input_: Tensor, dim: int):
+        def softmax(x: Tensor, dim: int):
             """ Help function that applies the Softmax(x) function
             to an n-dimensional input Tensor.
 
@@ -39,14 +39,14 @@ class F_LogSoftmax(_Function):
                 values in the range (0, 1).
             """
             # LogSumExp trick, for numerical stability
-            shifted = input_ - np.max(input_)
+            shifted = x - np.max(x)
             exps = np.exp(shifted)
             sum_ = np.sum(exps, axis=dim)
             shape_ = list(sum_.shape)
             shape_.insert(dim, 1)
             return exps / sum_.reshape(shape_)
 
-        softmax_ = softmax(input_, dim)
+        softmax_ = softmax(x, dim)
         result = np.log(softmax_)
         ctx.saveForBackward(softmax_, dim)
         return Tensor(result)
@@ -90,8 +90,8 @@ class LogSoftmax:
     def __init__(self, *, dim: int = 1) -> None:
         self.dim = dim
 
-    def __call__(self, input_: Tensor, /) -> Tensor:
-        return F_LogSoftmax()(input_, dim=self.dim)
+    def __call__(self, x: Tensor, /) -> Tensor:
+        return F_LogSoftmax()(x, dim=self.dim)
 
 
 class Sigmoid(_Function):
@@ -103,8 +103,8 @@ class Sigmoid(_Function):
     """
 
     @staticmethod
-    def _forward(ctx, input_: Tensor, /) -> Tensor:
-        result_ = 1 / (1 + np.exp(-input_))
+    def _forward(ctx, x: Tensor, /) -> Tensor:
+        result_ = 1 / (1 + np.exp(-x))
         ctx.saveForBackward(result_)
         return result_
 
@@ -124,8 +124,8 @@ class ReLU(_Function):
     """
 
     @staticmethod
-    def _forward(ctx, input_: Tensor, /) -> Tensor:
-        result_ = np.piecewise(input_, [input_ < 0, input_ >= 0], [lambda x: 0, lambda x: x])
+    def _forward(ctx, x: Tensor, /) -> Tensor:
+        result_ = np.piecewise(x, [x < 0, x >= 0], [lambda x: 0, lambda x: x])
         ctx.saveForBackward(result_)
         return result_
 

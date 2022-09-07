@@ -37,8 +37,8 @@ class Linear(_Layer):
     def parameters(self) -> list:
         return [self.weight, self.bias] if self._bias else [self.weight]
 
-    def _forward(self, input_: Tensor) -> Tensor:
-        mul = MatMul()(input_, self.weight, rightT=True)
+    def _forward(self, x: Tensor) -> Tensor:
+        mul = MatMul()(x, self.weight, rightT=True)
         result = Add()(mul, self.bias) if self._bias else mul
         # Do not cast this to Tensor here.
         # It already is and would overwrite gradFn required for backward-propagation.

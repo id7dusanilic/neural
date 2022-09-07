@@ -133,7 +133,7 @@ class _Layer:
         """
         raise NotImplementedError
 
-    def _forward(self, input_: Tensor) -> Tensor:
+    def _forward(self, x: Tensor) -> Tensor:
         """ Performs the operation of the layer.
 
         Usage:
@@ -141,15 +141,15 @@ class _Layer:
             Should not be called directly.
 
         Args:
-            input_ (Tensor): input Tensor
+            x (Tensor): input Tensor
 
         Returns:
             Tensor that represents the result of the layer.
         """
         raise NotImplementedError
 
-    def __call__(self, input_: Tensor) -> Tensor:
-        result = self._forward(input_)
+    def __call__(self, x: Tensor) -> Tensor:
+        result = self._forward(x)
         return result
 
     def __str__(self) -> str:

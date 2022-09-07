@@ -19,18 +19,18 @@ class F_NLLLoss(_Function):
         reduction (str): one of 'none', 'mean', 'sum'
 
     Call Args:
-        input_ (Tensor): (n, C) Tensor
+        x (Tensor): (n, C) Tensor
         target (Tensor): (n,) Tensor of integer values in range [0, C-1]
 
     """
 
     @staticmethod
-    def _forward(ctx, input_: Tensor, /, target: Tensor, *, reduction: str = "mean") -> Tensor:
+    def _forward(ctx, x: Tensor, /, target: Tensor, *, reduction: str = "mean") -> Tensor:
         if reduction not in ["none", "mean", "sum"]:
             raise ValueError(f"Invalid reduction type: {reduction}")
 
-        ctx.saveForBackward(input_, target, reduction)
-        result_ = -input_[np.arange(input_.shape[0]), target]
+        ctx.saveForBackward(x, target, reduction)
+        result_ = -x[np.arange(x.shape[0]), target]
 
         if reduction == "mean":
             result_ = np.mean(result_)
@@ -43,11 +43,11 @@ class F_NLLLoss(_Function):
 
     @staticmethod
     def _backward(ctx, gradient: Tensor) -> Tensor:
-        input_, target, reduction = ctx.saved
-        grad = np.zeros_like(input_)
-        grad[np.arange(input_.shape[0]), target] = -1
+        x, target, reduction = ctx.saved
+        grad = np.zeros_like(x)
+        grad[np.arange(x.shape[0]), target] = -1
         if reduction == "mean":
-            grad = grad / input_.shape[0]
+            grad = grad / x.shape[0]
         return Tensor(grad*gradient),
 
 
@@ -57,8 +57,8 @@ class NLLLoss:
     def __init__(self, *, reduction: str = "mean") -> None:
         self.reduction = reduction
 
-    def __call__(self, input_: Tensor, /, target: Tensor) -> Tensor:
-        return F_NLLLoss()(input_, target=target, reduction=self.reduction)
+    def __call__(self, x: Tensor, /, target: Tensor) -> Tensor:
+        return F_NLLLoss()(x, target=target, reduction=self.reduction)
 
 
 class F_CrossEntropyLoss:
@@ -72,16 +72,16 @@ class F_CrossEntropyLoss:
         reduction (str): one of 'none', 'mean', 'sum'
 
     Call Args:
-        input_ (Tensor): (n, C) Tensor
+        x (Tensor): (n, C) Tensor
         target (Tensor): (n,) Tensor of integer values in range [0, C-1]
 
     """
 
-    def __call__(self, input_: Tensor, /, *, target: Tensor, reduction: str = "mean") -> Tensor:
+    def __call__(self, x: Tensor, /, *, target: Tensor, reduction: str = "mean") -> Tensor:
         if reduction not in ["none", "mean", "sum"]:
             raise ValueError(f"Invalid reduction type: {reduction}")
 
-        return NLLLoss(reduction=reduction)(LogSoftmax(dim=1)(input_), target)
+        return NLLLoss(reduction=reduction)(LogSoftmax(dim=1)(x), target)
 
 
 class CrossEntropyLoss:
@@ -90,5 +90,5 @@ class CrossEntropyLoss:
     def __init__(self, *, reduction: str = "mean") -> None:
         self.reduction = reduction
 
-    def __call__(self, input_: Tensor, /, target: Tensor) -> Tensor:
-        return F_CrossEntropyLoss()(input_, target=target, reduction=self.reduction)
+    def __call__(self, x: Tensor, /, target: Tensor) -> Tensor:
+        return F_CrossEntropyLoss()(x, target=target, reduction=self.reduction)
