@@ -1,5 +1,5 @@
 from .. import Tensor
-from ._functions import _Function
+from ._meta import _Function
 from ._layers import _Layer
 
 

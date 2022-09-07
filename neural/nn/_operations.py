@@ -1,7 +1,7 @@
 import numpy as np
 
 from .. import Tensor
-from ._functions import _Function
+from ._meta import _Function
 
 
 class Add(_Function):
@@ -14,13 +14,15 @@ class Add(_Function):
                 broadcastable dimension.
     """
 
-    def _forward(self, left: Tensor, right: Tensor) -> Tensor:
-        self.saveForBackward(left, right)
+    @staticmethod
+    def _forward(ctx, left: Tensor, right: Tensor, /) -> Tensor:
+        ctx.saveForBackward(left, right)
         add = left + right
         return Tensor(add)
 
-    def _backward(self, gradient: Tensor) -> tuple:
-        left, right = self.getContext()
+    @staticmethod
+    def _backward(ctx, gradient: Tensor) -> tuple:
+        left, right = ctx.saved
         gradientLeft = Tensor(gradient*np.ones_like(left))
         gradientRight = Tensor(gradient*np.ones_like(right))
 
@@ -54,23 +56,19 @@ class MatMul(_Function):
         rightT (bool): if True right matrix will be transposed prior to multiplication
     """
 
-    def __init__(self, leftT: bool = False, rightT: bool = False) -> None:
-        super().__init__()
-
-        self.leftT = leftT
-        self.rightT = rightT
-
-    def _forward(self, left: Tensor, right: Tensor) -> Tensor:
-        left_ = left.T if self.leftT else left
-        right_ = right.T if self.rightT else right
-        self.saveForBackward(left_.T, right_.T)
+    @staticmethod
+    def _forward(ctx, left: Tensor, right: Tensor, /, *, leftT: bool = False, rightT: bool = False) -> Tensor:
+        left_ = left.T if leftT else left
+        right_ = right.T if rightT else right
+        ctx.saveForBackward(left_, right_, leftT, rightT)
         mul = np.matmul(left_, right_)
         return Tensor(mul)
 
-    def _backward(self, gradient: Tensor) -> tuple:
-        left, right = self.getContext()
-        gradientLeft = np.matmul(gradient, right)
-        gradientLeft = gradientLeft.T if self.leftT else gradientLeft
-        gradientRight = np.matmul(left, gradient)
-        gradientRight = gradientRight.T if self.rightT else gradientRight
+    @staticmethod
+    def _backward(ctx, gradient: Tensor) -> tuple:
+        left, right, leftT, rightT = ctx.saved
+        gradientLeft = np.dot(gradient, right.T)
+        gradientLeft = gradientLeft.T if leftT else gradientLeft
+        gradientRight = np.dot(left.T, gradient)
+        gradientRight = gradientRight.T if rightT else gradientRight
         return gradientLeft, gradientRight
