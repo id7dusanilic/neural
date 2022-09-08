@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.signal import correlate2d
 
 from .. import Tensor
 from ._meta import _Layer, _Function
@@ -57,18 +58,93 @@ class Linear(_Layer):
 
     def _forward(self, x: Tensor) -> Tensor:
         return F_Linear()(x, self.weight, self.bias)
+
+
+class F_Conv2d(_Function):
+
+    @staticmethod
+    def _forward(ctx, x: Tensor, w: Tensor, b: Tensor, /, *, padding: int = 0, stride: int = 1) -> Tensor:
+        ctx.saveForBackward(x, w, b, padding, stride)
+        N, C, H, W = x.shape
+        F, _, HH, WW = w.shape
+
+        H_ = (H + 2*padding - HH) // stride + 1
+        W_ = (W + 2*padding - WW) // stride + 1
+        shape_ = N, F, H_, W_
+        y = np.zeros(shape_)
+
+        xp = np.pad(x, ((0,), (0,), (padding,), (padding, )), 'constant')
+        for n in range(N):
+            for f in range(F):
+                for c in range(C):
+                    y[n, f] += correlate2d(xp[n, c], w[f, c], mode="valid")[..., ::stride, ::stride]
+
+        y = y + b[None, :, None, None] if b is not None else y
+
+        return Tensor(y)
+
+    @staticmethod
+    def _backward(ctx, gradient: Tensor) -> tuple:
+        x, w, b, padding, stride = ctx.saved
+        N, C, _, _ = x.shape
+        F, _, _, _ = w.shape
+
+        def _2dConvXBackwardStride(w, g, stride):
+            HG, WG = g.shape
+            gStride = np.zeros((stride*HG, stride*WG))
+            gStride[::stride, ::stride] = g
+            result = correlate2d(gStride, w[::-1, ::-1], mode="full")
+            return result
+
+        def _2dConvWeightBackwardStride(x, g, stride):
+            HG, WG = g.shape
+            HX, WX = x.shape
+            gStride = np.zeros((stride*HG, stride*WG))
+            gStride[::stride, ::stride] = g
+            result = correlate2d(x, gStride, mode="valid")
+            result = result[:HX, :WX]
+            return result
+
+        xp = np.pad(x, ((0,), (0,), (padding,), (padding, )), 'constant')
+        dxp = np.zeros_like(xp)
+        for n in range(N):
+            for f in range(F):
+                for c in range(C):
+                    dxp[n, c] += _2dConvXBackwardStride(w[f, c], gradient[n, f], stride)
+        dx = dxp[..., padding:-padding, padding:-padding]
+
+        dw = np.zeros_like(w)
+        for n in range(N):
+            for f in range(F):
+                for c in range(C):
+                    dw[f, c] += _2dConvWeightBackwardStride(xp[n, c], gradient[n, f], stride)
+
+        db = np.sum(gradient, axis=(0, 2, 3)) if b is not None else None
+
+        return dx, dw, db
+
+
+class Conv2d(_Layer):
+
+    def __init__(self, inChannels: int, outChannels: int, kernelSize: tuple[int, int],
+            *, bias: bool = True, stride: int = 1, padding: int = 0) -> None:
         super().__init__()
 
+        kernelSize = (kernelSize, kernelSize) if isinstance(kernelSize, int) else kernelSize
         self._bias = bias
-        self._inSize = inSize
-        self._outSize = outSize
+        self.inChannels = inChannels
+        self.outChannels = outChannels
+        self.kernelSize = kernelSize
+        self.stride = stride
+        self.padding = padding
 
-        k_ = np.sqrt(1/inSize)
-        self.weight = Tensor(2*k_*np.random.rand(outSize, inSize) - k_, requiresGrad=True)
-        self.bias = Tensor(2*k_*np.random.rand(outSize) - k_, requiresGrad=True) if bias else None
+        k = np.sqrt(1/(inChannels*kernelSize[0]*kernelSize[1]))
+        self.weight = Tensor(2*k*np.random.rand(outChannels, inChannels, kernelSize[0], kernelSize[1]) - k,
+                requiresGrad=True)
+        self.bias = Tensor(2*k*np.random.rand(outChannels) - k, requiresGrad=True) if bias else None
 
     def parameters(self) -> list:
         return [self.weight, self.bias] if self._bias else [self.weight]
 
     def _forward(self, x: Tensor) -> Tensor:
-        return F_Linear()(x, self.weight, self.bias)
+        return F_Conv2d()(x, self.weight, self.bias, padding=self.padding, stride=self.stride)
