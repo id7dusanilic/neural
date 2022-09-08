@@ -88,8 +88,9 @@ class _Function:
         logging.debug(f"{type(self).__name__}._backward() returned {outGradient}")
         # Continuing backward-propagation down the graph
         for tensor, grad in zip(self._tensors, outGradient):
-            if tensor.requiresGrad:
-                tensor.backward(grad)
+            if tensor is not None:
+                if tensor.requiresGrad:
+                    tensor.backward(grad)
 
     def __call__(self, *tensors, **kwargs) -> Tensor:
         cls = self.__class__
