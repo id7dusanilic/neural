@@ -134,3 +134,41 @@ class ReLU(_Function):
         result_, = ctx.saved
         grad = (result_ > 0).astype(float)
         return Tensor(gradient*grad),
+
+
+class F_Dropout(_Function):
+    """ Applies dropout.
+
+    During training, randomly zeroes some of the elements of the
+    input tensor with probability p using samples from a uniform
+    distribution. Furthermore, the outputs are scaled by a
+    factor of 1 / (1 - p)
+
+    Shape:
+        Input: n-dimensional Tensor
+        Output: same shape as Input
+
+    Parameters:
+        p (float): probability
+    """
+
+    @staticmethod
+    def _forward(ctx, x: Tensor, /, *, p: float = 0.5) -> Tensor:
+        mask = (np.random.uniform(size=x.shape) > p).astype(np.float) / (1 - p)
+        ctx.saveForBackward(mask)
+        y = mask * x
+        return Tensor(y)
+
+    @staticmethod
+    def _backward(ctx, gradient: Tensor) -> tuple:
+        mask, = ctx.saved
+        dx = gradient*mask
+        return Tensor(dx),
+
+class Dropout:
+    F_Dropout.__doc__
+    def __init__(self, *, p: float = 0.5) -> None:
+        self.p = p
+
+    def __call__(self, x: Tensor, /) -> Tensor:
+        return F_Dropout()(x, p=self.p)
