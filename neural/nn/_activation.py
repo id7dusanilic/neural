@@ -46,10 +46,10 @@ class F_LogSoftmax(_Function):
             shape_.insert(dim, 1)
             return exps / sum_.reshape(shape_)
 
-        softmax_ = softmax(x, dim)
-        result = np.log(softmax_)
-        ctx.saveForBackward(softmax_, dim)
-        return Tensor(result)
+        s = softmax(x, dim)
+        ctx.saveForBackward(s, dim)
+        y = np.log(s)
+        return Tensor(y)
 
     @staticmethod
     def _backward(ctx, gradient: Tensor) -> tuple:
@@ -70,16 +70,16 @@ class F_LogSoftmax(_Function):
             """
             return np.eye(s.size) - s
 
-        softmax_, dim = ctx.saved
-        softmax_ = softmax_.swapaxes(-1, dim)
-        gradientsShape = softmax_.shape
-        softmax_ = softmax_.reshape(-1, softmax_.shape[-1])
+        s, dim = ctx.saved
+        s = s.swapaxes(-1, dim)
+        gradientsShape = s.shape
+        s = s.reshape(-1, s.shape[-1])
         gradient_ = gradient.swapaxes(-1, dim)
         gradient_ = gradient_.reshape(-1, gradient_.shape[-1])
 
         gradients = list()
-        for s, grad in zip(softmax_, gradient_):
-            gradients.append(np.matmul(grad, formJcb(s)))
+        for ss, grad in zip(s, gradient_):
+            gradients.append(np.matmul(grad, formJcb(ss)))
 
         return Tensor(gradients).reshape(gradientsShape).swapaxes(-1, dim),
 
@@ -104,15 +104,15 @@ class Sigmoid(_Function):
 
     @staticmethod
     def _forward(ctx, x: Tensor, /) -> Tensor:
-        result_ = 1 / (1 + np.exp(-x))
-        ctx.saveForBackward(result_)
-        return result_
+        y = 1 / (1 + np.exp(-x))
+        ctx.saveForBackward(y)
+        return Tensor(y)
 
     @staticmethod
     def _backward(ctx, gradient: Tensor) -> tuple:
-        sigmoid, = ctx.saved
-        grad = sigmoid*(1-sigmoid)
-        return Tensor(gradient*grad),
+        y, = ctx.saved
+        dx = gradient*(y*(1-y))
+        return Tensor(dx),
 
 
 class ReLU(_Function):
@@ -125,15 +125,15 @@ class ReLU(_Function):
 
     @staticmethod
     def _forward(ctx, x: Tensor, /) -> Tensor:
-        result_ = np.piecewise(x, [x < 0, x >= 0], [lambda x: 0, lambda x: x])
-        ctx.saveForBackward(result_)
-        return result_
+        y = np.piecewise(x, [x < 0, x >= 0], [lambda x: 0, lambda x: x])
+        ctx.saveForBackward(y)
+        return y
 
     @staticmethod
     def _backward(ctx, gradient: Tensor) -> tuple:
-        result_, = ctx.saved
-        grad = (result_ > 0).astype(float)
-        return Tensor(gradient*grad),
+        y, = ctx.saved
+        dx = gradient*((y > 0).astype(float))
+        return Tensor(dx),
 
 
 class F_Dropout(_Function):

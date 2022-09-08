@@ -30,25 +30,26 @@ class F_NLLLoss(_Function):
             raise ValueError(f"Invalid reduction type: {reduction}")
 
         ctx.saveForBackward(x, target, reduction)
-        result_ = -x[np.arange(x.shape[0]), target]
+        y = -x[np.arange(x.shape[0]), target]
 
         if reduction == "mean":
-            result_ = np.mean(result_)
+            y = np.mean(y)
         elif reduction == "sum":
-            result_ = np.sum(result_)
+            y = np.sum(y)
         elif reduction == "none":
-            result_ = result_
+            y = y
 
-        return Tensor(result_)
+        return Tensor(y)
 
     @staticmethod
     def _backward(ctx, gradient: Tensor) -> Tensor:
         x, target, reduction = ctx.saved
-        grad = np.zeros_like(x)
-        grad[np.arange(x.shape[0]), target] = -1
+        dx = np.zeros_like(x)
+        dx[np.arange(x.shape[0]), target] = -1
         if reduction == "mean":
-            grad = grad / x.shape[0]
-        return Tensor(grad*gradient),
+            dx = dx / x.shape[0]
+        dx = dx*gradient
+        return Tensor(dx),
 
 
 class NLLLoss:
