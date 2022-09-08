@@ -1,13 +1,13 @@
 import numpy as np
 
 from .. import Tensor
-from ._meta import _Layer
+from ._meta import _Layer, _Function
 from ._operations import MatMul, Add
 
 
-class Linear(_Layer):
+class F_Linear(_Function):
     """ Applies a linear transformation to the
-    incoming data y = x@A.T + b
+    incoming data y = x@w.T + b
 
     Args:
         inSize: size of each input sample
@@ -23,7 +23,40 @@ class Linear(_Layer):
         bias (Tensor): bias of the layer of shape (outSize,).
     """
 
-    def __init__(self, inSize: int, outSize: int, bias: bool = True) -> None:
+    @staticmethod
+    def _forward(ctx, x: Tensor, w: Tensor, b: Tensor, /) -> Tensor:
+        ctx.saveForBackward(x, w, b)
+        y = np.matmul(x, w.T) + b if b is not None else np.matmul(x, w.T)
+        return Tensor(y)
+
+    @staticmethod
+    def _backward(ctx, gradient: Tensor) -> tuple:
+        x, w, b = ctx.saved
+        dx = np.dot(gradient, w)
+        dw = np.dot(x.T, gradient).T
+        db = np.sum(gradient, axis=0) if b is not None else None
+        return dx, dw, db
+
+
+class Linear(_Layer):
+    F_Linear.__doc__
+
+    def __init__(self, inSize: int, outSize: int, *, bias: bool = True) -> None:
+        super().__init__()
+
+        self._bias = bias
+        self.inSize = inSize
+        self.outSize = outSize
+
+        k = np.sqrt(1/inSize)
+        self.weight = Tensor(2*k*np.random.rand(outSize, inSize) - k, requiresGrad=True)
+        self.bias = Tensor(2*k*np.random.rand(outSize) - k, requiresGrad=True) if bias else None
+
+    def parameters(self) -> list:
+        return [self.weight, self.bias] if self._bias else [self.weight]
+
+    def _forward(self, x: Tensor) -> Tensor:
+        return F_Linear()(x, self.weight, self.bias)
         super().__init__()
 
         self._bias = bias
@@ -38,8 +71,4 @@ class Linear(_Layer):
         return [self.weight, self.bias] if self._bias else [self.weight]
 
     def _forward(self, x: Tensor) -> Tensor:
-        mul = MatMul()(x, self.weight, rightT=True)
-        result = Add()(mul, self.bias) if self._bias else mul
-        # Do not cast this to Tensor here.
-        # It already is and would overwrite gradFn required for backward-propagation.
-        return result
+        return F_Linear()(x, self.weight, self.bias)
