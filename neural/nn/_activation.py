@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.ndimage import maximum_filter
 
 from .. import Tensor
 from ._meta import _Function
@@ -167,8 +168,67 @@ class F_Dropout(_Function):
 
 class Dropout:
     F_Dropout.__doc__
+
     def __init__(self, *, p: float = 0.5) -> None:
         self.p = p
 
     def __call__(self, x: Tensor, /) -> Tensor:
         return F_Dropout()(x, p=self.p)
+
+
+class F_MaxPool2d(_Function):
+    """ Applies a 2D max pooling over an input signal composed
+    of several input planes.
+
+    Args:
+        kernelSize (int, tuple[int, int]): the size if the window
+        stride (int): stride of the window
+        padding (int): implicit zero padding to be added to both sides
+
+    Shape:
+        Input: (N, C, Hin, Win) or (C, Hin, Win) Tensor
+        Output: (N, C, Hout, Wout) or (C, Hout, Wout) Tensor
+
+        N is a batch size, C is the number of channels
+    """
+
+    @staticmethod
+    def _forward(ctx, x: Tensor, kernelSize: tuple[int, int], /, *, padding: int = 0, stride: int = 1) -> Tensor:
+        x = x if x.ndim == 4 else x[None, ...]
+        kernelSize = (kernelSize, kernelSize) if isinstance(kernelSize, int) else kernelSize
+        N, C, _, _ = x.shape
+
+        xp = np.pad(x, ((0,), (0,), (padding,), (padding, )), "constant")
+        yp = np.zeros_like(xp)
+
+        for n in range(N):
+            for c in range(C):
+                yp[n,c] = maximum_filter(xp[n,c], size=kernelSize, mode="constant")
+
+        xstart, ystart = kernelSize[0]//2, kernelSize[1]//2
+        xstop = -xstart if kernelSize[0]%2 != 0 else -xstart+1; xstop = None if xstop == 0 else xstop
+        ystop = -ystart if kernelSize[1]%2 != 0 else -ystart+1; ystop = None if ystop == 0 else ystop
+        y = yp[..., xstart:xstop:stride, ystart:ystop:stride]
+
+        ctx.saveForBackward(x, y, padding, stride)
+        return Tensor(y)
+
+    @staticmethod
+    def _backward(ctx, gradient: Tensor) -> tuple:
+        x, y, padding, stride = ctx.saved
+        dx = np.zeros_like(x)
+        for uniq in np.unique(y):
+            dx[x == uniq] = np.count_nonzero(y == uniq) * np.mean(gradient[y == uniq])
+        return Tensor(dx),
+
+class MaxPool2d:
+    F_MaxPool2d.__doc__
+
+    def __init__(self, kernelSize: tuple[int, int], /, *, padding: int = 0, stride: int = 1) -> Tensor:
+        kernelSize = (kernelSize, kernelSize) if isinstance(kernelSize, int) else kernelSize
+        self.kernelSize = kernelSize
+        self.padding = padding
+        self.stride = stride
+
+    def __call__(self, x: Tensor, /) -> Tensor:
+        return F_MaxPool2d()(x, self.kernelSize, padding=self.padding, stride=self.stride)
