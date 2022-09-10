@@ -61,9 +61,23 @@ class Linear(_Layer):
 
 
 class F_Conv2d(_Function):
+    """ Applies a 2D convolution over an input signal composed
+    of several input planes.
+
+    Args:
+        stride (int): stride of the filter
+        padding (int): implicit zero padding to be added to both sides
+
+    Shape:
+        Input: (N, C, Hin, Win) or (C, Hin, Win) Tensor
+        Output: (N, C, Hout, Wout) or (C, Hout, Wout) Tensor
+
+        N is a batch size, C is the number of channels
+    """
 
     @staticmethod
     def _forward(ctx, x: Tensor, w: Tensor, b: Tensor, /, *, padding: int = 0, stride: int = 1) -> Tensor:
+        x = x if x.ndim == 4 else x[None, ...]
         ctx.saveForBackward(x, w, b, padding, stride)
         N, C, H, W = x.shape
         F, _, HH, WW = w.shape
@@ -105,7 +119,7 @@ class F_Conv2d(_Function):
             result = result[:HX, :WX]
             return result
 
-        xp = np.pad(x, ((0,), (0,), (padding,), (padding, )), 'constant')
+        xp = np.pad(x, ((0,), (0,), (padding,), (padding, )), "constant")
         dxp = np.zeros_like(xp)
         for n in range(N):
             for f in range(F):
@@ -125,6 +139,7 @@ class F_Conv2d(_Function):
 
 
 class Conv2d(_Layer):
+    F_Conv2d.__doc__
 
     def __init__(self, inChannels: int, outChannels: int, kernelSize: tuple[int, int],
             *, bias: bool = True, stride: int = 1, padding: int = 0) -> None:
