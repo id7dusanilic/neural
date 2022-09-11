@@ -33,6 +33,11 @@ class Tensor(np.ndarray):
             result += f", gradFn={type(self.gradFn).__name__}"
         return result
 
+    def reshape_(self, newShape):
+        self.shape = newShape
+        if self.grad is not None:
+            self.grad.shape = newShape
+
     def backward(self, gradient=None):
         logging.info(f"Reached tensor while backward-propagating")
         logging.debug(self)
