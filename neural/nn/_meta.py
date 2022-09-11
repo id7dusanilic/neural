@@ -40,8 +40,29 @@ class _Function:
         with the created object.
     """
 
-    def __init__(self) -> None:
-        self._ctx = _Context()
+    class _FunctionBackward:
+
+        def __init__(self, class_: type, ctx: _Context, outShape: tuple, *tensors):
+            self.class_ = class_
+            self.ctx = ctx
+            self.outShape = outShape
+            self.tensors = tensors
+
+        def __str__(self):
+            return self.class_.__name__ + "Backward"
+
+        def backward(self, gradient: Tensor) -> None:
+            logging.info(f"Reached {self.class_.__name__} while backward-propagating.")
+            logging.debug(f"Input gradient is {gradient}")
+            logging.debug(f"Input gradient shape is {gradient.shape}")
+            # Calculating gradient for each input
+            outGradient = self.class_._backward(self.ctx, gradient.reshape(self.outShape))
+            logging.debug(f"{type(self).__name__}._backward() returned {outGradient}")
+            # Continuing backward-propagation down the graph
+            for tensor, grad in zip(self.tensors, outGradient):
+                if tensor is not None:
+                    if tensor.requiresGrad:
+                        tensor.backward(grad)
 
     @staticmethod
     def _forward(ctx, *args) -> Tensor:
@@ -79,32 +100,15 @@ class _Function:
         """
         raise NotImplementedError
 
-    def backward(self, gradient: Tensor) -> None:
-        cls = self.__class__
-        logging.info(f"Reached function {type(self).__name__} while backward-propagating.")
-        logging.debug(f"Input gradient is {gradient}")
-        logging.debug(f"Input gradient shape is {gradient.shape}")
-        # Calculating gradient for each input
-        outGradient = cls._backward(self._ctx, gradient.reshape(self._outShape))
-        logging.debug(f"{type(self).__name__}._backward() returned {outGradient}")
-        # Continuing backward-propagation down the graph
-        for tensor, grad in zip(self._tensors, outGradient):
-            if tensor is not None:
-                if tensor.requiresGrad:
-                    tensor.backward(grad)
-
     def __call__(self, *tensors, **kwargs) -> Tensor:
         cls = self.__class__
-        # Saving input Tensors for automatic backward-propagation
-        self._tensors = tensors
         # Performing the calculation
-        result = cls._forward(self._ctx, *tensors, **kwargs)
+        ctx = _Context()
+        result = cls._forward(ctx, *tensors, **kwargs)
         # Setting the gradient function for automatic backward-propagation
-        result.gradFn = self
+        result.gradFn = cls._FunctionBackward(self.__class__, ctx, result.shape, *tensors)
         # The output requires gradient calculation implicitly
         result.requiresGrad = True
-        # Saving output shape
-        self._outShape = result.shape
         return result
 
 

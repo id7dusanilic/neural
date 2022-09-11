@@ -30,7 +30,7 @@ class Tensor(np.ndarray):
         if self.requiresGrad:
             result += ", requiresGrad=True"
         if self.gradFn is not None:
-            result += f", gradFn={type(self.gradFn).__name__}"
+            result += f", gradFn={self.gradFn}"
         return result
 
     def reshape_(self, newShape):
