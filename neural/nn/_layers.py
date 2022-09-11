@@ -125,7 +125,8 @@ class F_Conv2d(_Function):
             for f in range(F):
                 for c in range(C):
                     dxp[n, c] += _2dConvXBackwardStride(w[f, c], gradient[n, f], stride)
-        dx = dxp[..., padding:-padding, padding:-padding]
+        start, stop = padding, (-padding if padding != 0 else None)
+        dx = dxp[..., start:stop, start:stop]
 
         dw = np.zeros_like(w)
         for n in range(N):
