@@ -85,7 +85,7 @@ class _Function:
         logging.debug(f"Input gradient is {gradient}")
         logging.debug(f"Input gradient shape is {gradient.shape}")
         # Calculating gradient for each input
-        outGradient = cls._backward(self._ctx, gradient)
+        outGradient = cls._backward(self._ctx, gradient.reshape(self._outShape))
         logging.debug(f"{type(self).__name__}._backward() returned {outGradient}")
         # Continuing backward-propagation down the graph
         for tensor, grad in zip(self._tensors, outGradient):
@@ -103,6 +103,8 @@ class _Function:
         result.gradFn = self
         # The output requires gradient calculation implicitly
         result.requiresGrad = True
+        # Saving output shape
+        self._outShape = result.shape
         return result
 
 
