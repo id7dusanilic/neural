@@ -5,6 +5,30 @@ from .. import Tensor
 from ._meta import _Function
 
 
+def softmax(x: Tensor, dim: int = 1):
+    """ Help function that applies the Softmax(x) function
+    to an n-dimensional input Tensor.
+
+    Shape:
+        Input: n-dimensional Tensor
+        Output: same shape as Input
+
+    Args:
+        dim (int):  A dimension along which LogSoftmax will be computed.
+
+    Returns:
+        a Tensor of the same dimension and shape as the input with
+        values in the range (0, 1).
+    """
+    # LogSumExp trick, for numerical stability
+    shifted = x - np.max(x)
+    exps = np.exp(shifted)
+    sum_ = np.sum(exps, axis=dim)
+    shape_ = list(sum_.shape)
+    shape_.insert(dim, 1)
+    return exps / sum_.reshape(shape_)
+
+
 class F_LogSoftmax(_Function):
     """ Applies the log(Softmax(x)) function to an n-dimensional
     input Tensor.
@@ -23,30 +47,6 @@ class F_LogSoftmax(_Function):
 
     @staticmethod
     def _forward(ctx, x: Tensor, /, *, dim: int = 1) -> Tensor:
-
-        def softmax(x: Tensor, dim: int):
-            """ Help function that applies the Softmax(x) function
-            to an n-dimensional input Tensor.
-
-            Shape:
-                Input: n-dimensional Tensor
-                Output: same shape as Input
-
-            Args:
-                dim (int):  A dimension along which LogSoftmax will be computed.
-
-            Returns:
-                a Tensor of the same dimension and shape as the input with
-                values in the range (0, 1).
-            """
-            # LogSumExp trick, for numerical stability
-            shifted = x - np.max(x)
-            exps = np.exp(shifted)
-            sum_ = np.sum(exps, axis=dim)
-            shape_ = list(sum_.shape)
-            shape_.insert(dim, 1)
-            return exps / sum_.reshape(shape_)
-
         s = softmax(x, dim)
         ctx.saveForBackward(s, dim)
         y = np.log(s)
