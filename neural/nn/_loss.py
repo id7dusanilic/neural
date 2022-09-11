@@ -93,3 +93,53 @@ class CrossEntropyLoss:
 
     def __call__(self, x: Tensor, /, target: Tensor) -> Tensor:
         return F_CrossEntropyLoss()(x, target=target, reduction=self.reduction)
+
+
+class F_L1Loss(_Function):
+    """ Creates a criterion that measures the mean absoulute error
+    between each element in the input and target.
+
+    Args:
+        reduction (str): one of 'none', 'mean', 'sum'
+
+    Shapes:
+        x (Tensor): n-dimensional Tensor
+        target (Tensor): same shape as the input
+
+    """
+
+    @staticmethod
+    def _forward(ctx, x: Tensor, /, target: Tensor, *, reduction: str = "mean") -> Tensor:
+        if reduction not in ["none", "mean", "sum"]:
+            raise ValueError(f"Invalid reduction type: {reduction}")
+
+        ctx.saveForBackward(x, target, reduction)
+        y = np.abs(x - target)
+
+        if reduction == "mean":
+            y = np.mean(y)
+        elif reduction == "sum":
+            y = np.sum(y)
+        elif reduction == "none":
+            y = y
+
+        return Tensor(y)
+
+    @staticmethod
+    def _backward(ctx, gradient: Tensor) -> Tensor:
+        x, target, reduction = ctx.saved
+        dx = 2*(target < x).astype(float) - 1
+        if reduction == "mean":
+            dx = dx / x.size
+        dx = dx*gradient
+        return Tensor(dx),
+
+
+class L1Loss:
+    F_L1Loss.__doc__
+
+    def __init__(self, *, reduction: str = "mean") -> None:
+        self.reduction = reduction
+
+    def __call__(self, x: Tensor, /, target: Tensor) -> Tensor:
+        return F_L1Loss()(x, target=target, reduction=self.reduction)
