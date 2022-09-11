@@ -72,7 +72,7 @@ class F_CrossEntropyLoss:
     Args:
         reduction (str): one of 'none', 'mean', 'sum'
 
-    Call Args:
+    Shapes:
         x (Tensor): (n, C) Tensor
         target (Tensor): (n,) Tensor of integer values in range [0, C-1]
 
