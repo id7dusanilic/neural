@@ -1,2 +1,2 @@
 from ._tensor import Tensor
-from ._loader import MNIST
+from ._loader import MNIST, CIFAR10
