@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 
 from .. import Tensor
 
@@ -14,7 +15,7 @@ class _Context:
         Args:
             args: Any object that is needed in the backward-pass.
         """
-        self._saved += list(args)
+        self._saved += deepcopy(list(args))
 
     @property
     def saved(self) -> list:
