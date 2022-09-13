@@ -33,6 +33,26 @@ class Tensor(np.ndarray):
             result += f", gradFn={self.gradFn}"
         return result
 
+    def __reduce_ex__(self, proto):
+        state = np.ndarray.__reduce_ex__(self, proto)
+        if self.grad is not None:
+            gradState = np.ndarray.__reduce_ex__(self.grad, proto)[2]
+        else:
+            gradState = None
+        state = (state[0], state[1], (state[2], gradState, self.requiresGrad))
+
+        return state
+
+    def __setstate__(self, state):
+        state_, gradState, requiresGrad = state
+        np.ndarray.__setstate__(self, state_)
+        if gradState is not None:
+            self.grad = Tensor([])
+            np.ndarray.__setstate__(self.grad, gradState)
+        else:
+            self.grad = None
+        self.requiresGrad = requiresGrad
+
     def reshape_(self, newShape):
         self.shape = newShape
         if self.grad is not None:
