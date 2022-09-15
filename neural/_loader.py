@@ -1,3 +1,4 @@
+import os
 import numpy as np
 
 from . import Tensor
@@ -38,48 +39,51 @@ class MNIST:
     TEST_LABELS = "t10k-labels-idx1-ubyte"
 
     @classmethod
-    def download(cls, settype: str = "train"):
+    def download(cls, settype: str = "train", loc: str = "."):
         if settype not in ["train", "test"]:
             raise ValueError(f"Invalid set type {settype}. Valid values are 'train' and 'test'")
 
         import requests
-        import os
 
-        def _download(url):
+        def _download(url, loc):
             response = requests.get(url)
             name = url.split("/")[-1]
-            with open(name, "wb") as f:
+            with open(os.path.join(loc, name), "wb") as f:
                 f.write(response.content)
 
             import gzip
             import shutil
 
-            with gzip.open(name, "rb") as fIn:
-                with open(name[:-3], "wb") as fOut:
+            with gzip.open(os.path.join(loc, name), "rb") as fIn:
+                with open(os.path.join(loc, name[:-3]), "wb") as fOut:
                     shutil.copyfileobj(fIn, fOut)
 
+        os.makedirs(loc, exist_ok=True)
         if settype == "train":
-            if not os.path.exists(cls.TRAIN_IMAGES):
-                _download(cls.URL + cls.TRAIN_IMAGES + ".gz")
-            if not os.path.exists(cls.TRAIN_LABELS):
-                _download(cls.URL + cls.TRAIN_LABELS + ".gz")
+            if not os.path.exists(os.path.join(loc, cls.TRAIN_IMAGES)):
+                _download(cls.URL + cls.TRAIN_IMAGES + ".gz", loc)
+            if not os.path.exists(os.path.join(loc, cls.TRAIN_LABELS)):
+                _download(cls.URL + cls.TRAIN_LABELS + ".gz", loc)
         elif settype == "test":
-            if not os.path.exists(cls.TEST_IMAGES):
-                _download(cls.URL + cls.TEST_IMAGES + ".gz")
-            if not os.path.exists(cls.TEST_LABELS):
-                _download(cls.URL + cls.TEST_LABELS + ".gz")
+            if not os.path.exists(os.path.join(loc, cls.TEST_IMAGES)):
+                _download(cls.URL + cls.TEST_IMAGES + ".gz", loc)
+            if not os.path.exists(os.path.join(loc, cls.TEST_LABELS)):
+                _download(cls.URL + cls.TEST_LABELS + ".gz", loc)
 
     @classmethod
-    def get(cls, settype: str = "train"):
+    def get(cls, settype: str = "train", loc: str = "."):
         if settype not in ["train", "test"]:
             raise ValueError(f"Invalid set type {settype}. Valid values are 'train' and 'test'")
 
-        cls.download(settype)
+        loc = os.path.abspath(loc)
+        cls.download(settype, loc)
 
         if settype == "train":
-            images, labels = IDXFormatLoader.load(cls.TRAIN_IMAGES), IDXFormatLoader.load(cls.TRAIN_LABELS)
+            imgLoc, labelLoc = os.path.join(loc, cls.TRAIN_IMAGES), os.path.join(loc, cls.TRAIN_LABELS)
         elif settype == "test":
-            images, labels = IDXFormatLoader.load(cls.TEST_IMAGES), IDXFormatLoader.load(cls.TEST_LABELS)
+            imgLoc, labelLoc = os.path.join(loc, cls.TEST_IMAGES), os.path.join(loc, cls.TEST_LABELS)
+
+        images, labels = IDXFormatLoader.load(imgLoc), IDXFormatLoader.load(labelLoc)
 
         return images, labels
 
@@ -91,26 +95,26 @@ class CIFAR10:
     DIRNAME = "cifar-10-python/cifar-10-batches-py"
 
     @classmethod
-    def download(cls):
-        import os
+    def download(cls, loc: str = "."):
         import requests
         import tarfile
 
-        if not os.path.exists(cls.NAME):
+        if not os.path.exists(os.path.join(loc, cls.NAME)):
             url = cls.URL + cls.NAME
             response = requests.get(url)
-            with open(cls.NAME, "wb") as f:
+            with open(os.path.join(loc, cls.NAME), "wb") as f:
                 f.write(response.content)
 
-            with tarfile.open(cls.NAME) as f:
-                f.extractall(cls.NAME[:-7])
+            with tarfile.open(os.path.join(loc, cls.NAME)) as f:
+                f.extractall(os.path.join(loc, cls.NAME[:-7]))
 
     @classmethod
-    def get(cls, batch="test"):
+    def get(cls, batch: str = "test", loc: str = "."):
         if batch not in ["test", 1, 2, 3, 4, 5]:
             raise ValueError(f"Invalid batch type {batch}. Valid values are 'train' and 1,2,3,4,5")
 
-        cls.download()
+        loc = os.path.abspath(loc)
+        cls.download(loc)
 
         def _unpickle(file):
             import pickle
@@ -118,9 +122,8 @@ class CIFAR10:
                 data = pickle.load(fo, encoding='bytes')
             return data
 
-        import os
         filename = "test_batch" if batch == "test" else f"data_batch_{batch}"
-        data = _unpickle(os.path.join(cls.DIRNAME, filename))
+        data = _unpickle(os.path.join(loc, cls.DIRNAME, filename))
         images = data[b"data"]
         labels = data[b"labels"]
 
