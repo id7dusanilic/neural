@@ -69,12 +69,12 @@ def showMNIST(img, ps):
             linestyle='-.', linewidth=0.5,
             alpha=0.2)
 
-def plotLossTrack(losses, labels):
+def plotLossTrack(lossTupleList):
     fig, ax = plt.subplots(figsize=(12, 8))
-    for loss, label in zip(losses, labels):
-        ax.plot(loss.flatten(), label=label)
+    for loss, batchSize, label in lossTupleList:
+        ax.plot(batchSize*np.arange(loss.size), loss.flatten(), label=label)
     ax.set_ylabel("Loss")
-    ax.set_xlabel("Iteration number")
+    ax.set_xlabel("Samples processed")
     ax.set_title("Training loss")
     ax.legend()
     ax.grid("both")
