@@ -116,6 +116,28 @@ class Sigmoid(_Function):
         return Tensor(dx),
 
 
+class Tanh(_Function):
+    """ Applies the Hyperbolic Tangent (Tanh) function element-wise.
+
+    Shape:
+        Input: n-dimensional Tensor
+        Output: same shape as Input
+    """
+
+    @staticmethod
+    def _forward(ctx, x: Tensor, /) -> Tensor:
+        expx = np.exp(x)
+        expxn = np.exp(-x)
+        y = (expx - expxn) / (expx + expxn)
+        ctx.saveForBackward(y)
+        return Tensor(y)
+
+    @staticmethod
+    def _backward(ctx, gradient: Tensor) -> tuple:
+        y, = ctx.saved
+        dx = gradient*(1 - y**2)
+        return Tensor(dx),
+
 class ReLU(_Function):
     """ Applies the rectified linear unit function element-wise.
 
