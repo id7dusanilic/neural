@@ -72,7 +72,10 @@ class Tensor(np.ndarray):
             self.grad = None
         else:
             if self.grad is not None:
-                self.grad[:] = 0
+                try:
+                    self.grad[:] = 0
+                except IndexError:
+                    self.grad = 0
             else:
                 self.grad = Tensor(np.zeros_like(self))
 
