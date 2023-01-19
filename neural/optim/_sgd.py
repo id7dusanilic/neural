@@ -23,7 +23,7 @@ class SGD(Optimizer):
         self.lr = lr
         self.momentum = momentum
         self.maximize = maximize
-        self._prevParamsUpdate = [np.zeros_like(param.grad) for param in self.params]
+        self._prevParamsUpdate = [np.zeros_like(param) for param in self.params]
 
     def step(self):
         for i, (param, prevParamUpdate) in enumerate(zip(self.params, self._prevParamsUpdate)):

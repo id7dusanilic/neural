@@ -28,9 +28,9 @@ class Adam(Optimizer):
         self.maximize = maximize
         self._iterations = 0
         # First momentums
-        self._m = [np.zeros_like(param.grad) for param in self.params]
+        self._m = [np.zeros_like(param) for param in self.params]
         # Second momentums
-        self._v = [np.zeros_like(param.grad) for param in self.params]
+        self._v = [np.zeros_like(param) for param in self.params]
 
     def step(self):
         self._iterations = self._iterations + 1
