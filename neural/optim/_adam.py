@@ -12,6 +12,7 @@ class Adam(Optimizer):
         lr (float): learning rate
         betas (tuple[float, float]) : coefficients used for computing running averages of gradient and its square
         eps (float): term added to the denominator to improve numerical stability
+        amsgrad (bool):  whether to use the AMSGrad variant of this algorithm
         maximize (bool): If True, maximize instead of minimize
     """
 
@@ -19,18 +20,22 @@ class Adam(Optimizer):
             lr: float = 0.001,
             betas: tuple[float, float] = (0.9, 0.999),
             eps: float = 1e-08,
+            amsgrad: bool = False,
             maximize: bool = False):
         super().__init__(params)
 
         self.lr = lr
         self.betas = betas
         self.eps = eps
+        self.amsgrad = amsgrad
         self.maximize = maximize
         self._iterations = 0
         # First momentums
         self._m = [np.zeros_like(param) for param in self.params]
         # Second momentums
         self._v = [np.zeros_like(param) for param in self.params]
+        if self.amsgrad:
+            self._vbcmax = [np.zeros_like(param) for param in self.params]
 
     def step(self):
         self._iterations = self._iterations + 1
@@ -42,6 +47,10 @@ class Adam(Optimizer):
             # Bias correction
             mbc = mnew / (1 - self.betas[0]**self._iterations)
             vbc = vnew / (1 - self.betas[1]**self._iterations)
+
+            if self.amsgrad:
+                vbc[self._vbcmax[i] > vbc] = self._vbcmax[i][self._vbcmax[i] > vbc]
+                self._vbcmax[i] = vbc
 
             paramUpdate = self.lr*mbc / (np.sqrt(vbc) + self.eps)
 
