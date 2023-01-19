@@ -75,6 +75,6 @@ def plotLossTrack(lossTupleList):
         ax.plot(batchSize*np.arange(loss.size), loss.flatten(), label=label)
     ax.set_ylabel("Loss")
     ax.set_xlabel("Samples processed")
-    ax.set_title("Training loss")
+    ax.set_title(f"Training loss (Batch size: {batchSize})")
     ax.legend()
     ax.grid("both")
