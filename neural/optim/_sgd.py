@@ -4,7 +4,7 @@ from ._optim import Optimizer
 
 
 class SGD(Optimizer):
-    """ Implements stochastic gradient descent.
+    """ Implements stochastic gradient descent (optionally with momentum).
 
     Parameters:
         params (list): list of Tensors that will be optimized in each
@@ -23,20 +23,11 @@ class SGD(Optimizer):
         self.lr = lr
         self.momentum = momentum
         self.maximize = maximize
-        self._prevParamsUpdate = [None] * len(self.params)
+        self._prevParamsUpdate = [np.zeros_like(param.grad) for param in self.params]
 
     def step(self):
         for i, (param, prevParamUpdate) in enumerate(zip(self.params, self._prevParamsUpdate)):
-            firstIteration = prevParamUpdate is None
-            prevParamUpdate = np.zeros_like(param.grad) if firstIteration else prevParamUpdate
-
-            if self.momentum != 0.0:
-                if not firstIteration:
-                    paramUpdate = self.momentum*prevParamUpdate - self.lr*param.grad
-                else:
-                    paramUpdate = -self.lr*param.grad
-            else:
-                paramUpdate = -self.lr*param.grad
+            paramUpdate = -self.lr*(self.momentum*prevParamUpdate + param.grad)
 
             if self.maximize:
                 param[:] = param[:] - paramUpdate
