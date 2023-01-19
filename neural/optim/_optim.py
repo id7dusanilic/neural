@@ -1,6 +1,3 @@
-from .. import Tensor
-
-
 class Optimizer:
     """ Meta class used for creating custom optimizers.
 
