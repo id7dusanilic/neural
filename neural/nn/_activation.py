@@ -69,7 +69,7 @@ class F_LogSoftmax(_Function):
             Returns:
                 a Tensor representing the Jacobian matrix.
             """
-            return np.eye(s.size) - s
+            return Tensor(np.eye(s.size) - s)
 
         s, dim = ctx.saved
         s = s.swapaxes(-1, dim)
@@ -177,7 +177,7 @@ class F_Dropout(_Function):
 
     @staticmethod
     def _forward(ctx, x: Tensor, /, *, p: float = 0.5) -> Tensor:
-        mask = (np.random.uniform(size=x.shape) > p).astype(np.float) / (1 - p)
+        mask = (np.random.uniform(size=x.shape) > p).astype(np.float64) / (1 - p)
         ctx.saveForBackward(mask)
         y = mask * x
         return Tensor(y)
