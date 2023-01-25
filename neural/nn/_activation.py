@@ -105,7 +105,9 @@ class Sigmoid(_Function):
 
     @staticmethod
     def _forward(ctx, x: Tensor, /) -> Tensor:
-        y = 1 / (1 + np.exp(-x))
+        y = np.empty_like(x)
+        y[x<0] = np.exp(x[x<0]) / (1 + np.exp(x[x<0]))
+        y[x>=0] = 1 / (1 + np.exp(-x[x>=0]))
         ctx.saveForBackward(y)
         return Tensor(y)
 
