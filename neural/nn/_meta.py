@@ -1,5 +1,6 @@
 import logging
 from copy import deepcopy
+from typing import Type
 
 from .. import Tensor
 
@@ -42,7 +43,7 @@ class _Function:
 
     class _FunctionBackward:
 
-        def __init__(self, class_: type, ctx: _Context, outShape: tuple, *tensors):
+        def __init__(self, class_: Type["_Function"], ctx: _Context, outShape: tuple, *tensors):
             self.class_ = class_
             self.ctx = ctx
             self.outShape = outShape
@@ -56,7 +57,7 @@ class _Function:
             logging.debug(f"Input gradient is {gradient}")
             logging.debug(f"Input gradient shape is {gradient.shape}")
             # Calculating gradient for each input
-            outGradient = self.class_._backward(self.ctx, gradient.reshape(self.outShape))
+            outGradient = self.class_._backward(self.ctx, Tensor(gradient.reshape(self.outShape)))
             logging.debug(f"{type(self).__name__}._backward() returned {outGradient}")
             # Continuing backward-propagation down the graph
             for tensor, grad in zip(self.tensors, outGradient):
@@ -82,7 +83,7 @@ class _Function:
         raise NotImplementedError
 
     @staticmethod
-    def _backward(ctx, gradient: Tensor) -> tuple:
+    def _backward(ctx, gradient: Tensor) -> tuple[Tensor, ...]:
         """ Defines the formula for differentiating the
         operation for backward-propagation.
 

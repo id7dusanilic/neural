@@ -3,7 +3,6 @@ from scipy.signal import correlate2d
 
 from .. import Tensor
 from ._meta import _Layer, _Function
-from ._operations import MatMul, Add
 
 
 class F_Linear(_Function):
@@ -31,7 +30,7 @@ class F_Linear(_Function):
         return Tensor(y)
 
     @staticmethod
-    def _backward(ctx, gradient: Tensor) -> tuple:
+    def _backward(ctx, gradient: Tensor) -> tuple[Tensor, ...]:
         x, w, b = ctx.saved
         dx = np.dot(gradient, w)
         dw = np.dot(x.T, gradient).T
@@ -49,9 +48,9 @@ class Linear(_Layer):
         self.inSize = inSize
         self.outSize = outSize
 
-        k = np.sqrt(1/inSize)
-        self.weight = Tensor(2*k*np.random.rand(outSize, inSize) - k, requiresGrad=True)
-        self.bias = Tensor(2*k*np.random.rand(outSize) - k, requiresGrad=True) if bias else None
+        k = np.sqrt(1 / inSize)
+        self.weight = Tensor(2*k*np.random.rand(outSize, inSize) - k, requiresGrad=True)  # noqa: E226
+        self.bias = Tensor(2*k*np.random.rand(outSize) - k, requiresGrad=True) if bias else None  # noqa: E226
 
     def parameters(self) -> list:
         return [self.weight, self.bias] if self._bias else [self.weight]
@@ -82,8 +81,8 @@ class F_Conv2d(_Function):
         N, C, H, W = x.shape
         F, _, HH, WW = w.shape
 
-        H_ = (H + 2*padding - HH) // stride + 1
-        W_ = (W + 2*padding - WW) // stride + 1
+        H_ = (H + 2*padding - HH) // stride + 1  # noqa: E226
+        W_ = (W + 2*padding - WW) // stride + 1  # noqa: E226
         shape_ = N, F, H_, W_
         y = np.zeros(shape_)
 
@@ -98,7 +97,7 @@ class F_Conv2d(_Function):
         return Tensor(y)
 
     @staticmethod
-    def _backward(ctx, gradient: Tensor) -> tuple:
+    def _backward(ctx, gradient: Tensor) -> tuple[Tensor, ...]:
         x, w, b, padding, stride = ctx.saved
         N, C, _, _ = x.shape
         F, _, _, _ = w.shape
@@ -143,7 +142,7 @@ class Conv2d(_Layer):
     F_Conv2d.__doc__
 
     def __init__(self, inChannels: int, outChannels: int, kernelSize: tuple[int, int],
-            *, bias: bool = True, stride: int = 1, padding: int = 0) -> None:
+                 *, bias: bool = True, stride: int = 1, padding: int = 0) -> None:
         super().__init__()
 
         kernelSize = (kernelSize, kernelSize) if isinstance(kernelSize, int) else kernelSize
@@ -154,9 +153,8 @@ class Conv2d(_Layer):
         self.stride = stride
         self.padding = padding
 
-        k = np.sqrt(1/(inChannels*kernelSize[0]*kernelSize[1]))
-        self.weight = Tensor(2*k*np.random.rand(outChannels, inChannels, kernelSize[0], kernelSize[1]) - k,
-                requiresGrad=True)
+        k = np.sqrt(1 / (inChannels*kernelSize[0]*kernelSize[1]))  # noqa: E226
+        self.weight = Tensor(2*k*np.random.rand(outChannels, inChannels, kernelSize[0], kernelSize[1]) - k, requiresGrad=True)  # noqa: E226
         self.bias = Tensor(2*k*np.random.rand(outChannels) - k, requiresGrad=True) if bias else None
 
     def parameters(self) -> list:

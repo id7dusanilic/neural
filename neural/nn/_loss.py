@@ -42,13 +42,13 @@ class F_NLLLoss(_Function):
         return Tensor(y)
 
     @staticmethod
-    def _backward(ctx, gradient: Tensor) -> Tensor:
+    def _backward(ctx, gradient: Tensor) -> tuple[Tensor, ...]:
         x, target, reduction = ctx.saved
         dx = np.zeros_like(x)
         dx[np.arange(x.shape[0]), target] = -1
         if reduction == "mean":
             dx = dx / x.shape[0]
-        dx = dx*gradient
+        dx = dx * gradient
         return Tensor(dx),
 
 
@@ -126,12 +126,12 @@ class F_L1Loss(_Function):
         return Tensor(y)
 
     @staticmethod
-    def _backward(ctx, gradient: Tensor) -> Tensor:
+    def _backward(ctx, gradient: Tensor) -> tuple[Tensor, ...]:
         x, target, reduction = ctx.saved
-        dx = 2*(target < x).astype(float) - 1
+        dx = 2 * (target < x).astype(float) - 1
         if reduction == "mean":
             dx = dx / x.size
-        dx = dx*gradient
+        dx = dx * gradient
         return Tensor(dx),
 
 

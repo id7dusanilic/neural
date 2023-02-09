@@ -5,7 +5,7 @@ from .. import Tensor
 from ._meta import _Function
 
 
-def softmax(x: Tensor, dim: int = 1):
+def softmax(x: Tensor, dim: int = 1) -> Tensor:
     """ Help function that applies the Softmax(x) function
     to an n-dimensional input Tensor.
 
@@ -53,7 +53,7 @@ class F_LogSoftmax(_Function):
         return Tensor(y)
 
     @staticmethod
-    def _backward(ctx, gradient: Tensor) -> tuple:
+    def _backward(ctx, gradient: Tensor) -> tuple[Tensor, ...]:
 
         def formJcb(s: Tensor) -> Tensor:
             """ Help function that forms the Jacobian matrix for the
@@ -82,7 +82,9 @@ class F_LogSoftmax(_Function):
         for ss, grad in zip(s, gradient_):
             gradients.append(np.matmul(grad, formJcb(ss)))
 
-        return Tensor(gradients).reshape(gradientsShape).swapaxes(-1, dim),
+        gradients = np.array(gradients).reshape(gradientsShape).swapaxes(-1, dim)
+
+        return Tensor(gradients),
 
 
 class LogSoftmax:
@@ -106,15 +108,15 @@ class Sigmoid(_Function):
     @staticmethod
     def _forward(ctx, x: Tensor, /) -> Tensor:
         y = np.empty_like(x)
-        y[x<0] = np.exp(x[x<0]) / (1 + np.exp(x[x<0]))
-        y[x>=0] = 1 / (1 + np.exp(-x[x>=0]))
+        y[x < 0] = np.exp(x[x < 0]) / (1 + np.exp(x[x < 0]))
+        y[x >= 0] = 1 / (1 + np.exp(-x[x >= 0]))
         ctx.saveForBackward(y)
         return Tensor(y)
 
     @staticmethod
-    def _backward(ctx, gradient: Tensor) -> tuple:
+    def _backward(ctx, gradient: Tensor) -> tuple[Tensor, ...]:
         y, = ctx.saved
-        dx = gradient*(y*(1-y))
+        dx = gradient * (y*(1 - y))  # noqa: E226
         return Tensor(dx),
 
 
@@ -135,10 +137,11 @@ class Tanh(_Function):
         return Tensor(y)
 
     @staticmethod
-    def _backward(ctx, gradient: Tensor) -> tuple:
+    def _backward(ctx, gradient: Tensor) -> tuple[Tensor, ...]:
         y, = ctx.saved
-        dx = gradient*(1 - y**2)
+        dx = gradient * (1 - y**2)
         return Tensor(dx),
+
 
 class ReLU(_Function):
     """ Applies the rectified linear unit function element-wise.
@@ -150,14 +153,14 @@ class ReLU(_Function):
 
     @staticmethod
     def _forward(ctx, x: Tensor, /) -> Tensor:
-        y = np.piecewise(x, [x < 0, x >= 0], [lambda x: 0, lambda x: x])
+        y = np.piecewise(x, [x < 0, x >= 0], [lambda _: 0, lambda x: x])
         ctx.saveForBackward(y)
-        return y
+        return Tensor(y)
 
     @staticmethod
-    def _backward(ctx, gradient: Tensor) -> tuple:
+    def _backward(ctx, gradient: Tensor) -> tuple[Tensor, ...]:
         y, = ctx.saved
-        dx = gradient*((y > 0).astype(float))
+        dx = gradient * ((y > 0).astype(float))
         return Tensor(dx),
 
 
@@ -185,10 +188,11 @@ class F_Dropout(_Function):
         return Tensor(y)
 
     @staticmethod
-    def _backward(ctx, gradient: Tensor) -> tuple:
+    def _backward(ctx, gradient: Tensor) -> tuple[Tensor, ...]:
         mask, = ctx.saved
-        dx = gradient*mask
+        dx = gradient * mask
         return Tensor(dx),
+
 
 class Dropout:
     F_Dropout.__doc__
@@ -227,28 +231,32 @@ class F_MaxPool2d(_Function):
 
         for n in range(N):
             for c in range(C):
-                yp[n,c] = maximum_filter(xp[n,c], size=kernelSize, mode="constant")
+                yp[n, c] = maximum_filter(xp[n, c], size=kernelSize, mode="constant")
 
-        xstart, ystart = kernelSize[0]//2, kernelSize[1]//2
-        xstop = -xstart if kernelSize[0]%2 != 0 else -xstart+1; xstop = None if xstop == 0 else xstop
-        ystop = -ystart if kernelSize[1]%2 != 0 else -ystart+1; ystop = None if ystop == 0 else ystop
+        xstart, ystart = kernelSize[0] // 2, kernelSize[1] // 2
+        xstop = -xstart if kernelSize[0] % 2 != 0 else -xstart + 1
+        xstop = None if xstop == 0 else xstop
+        ystop = -ystart if kernelSize[1] % 2 != 0 else -ystart + 1
+        ystop = None if ystop == 0 else ystop
+
         y = yp[..., xstart:xstop:stride, ystart:ystop:stride]
 
-        ctx.saveForBackward(x, y, padding, stride)
+        ctx.saveForBackward(x, y)
         return Tensor(y)
 
     @staticmethod
-    def _backward(ctx, gradient: Tensor) -> tuple:
-        x, y, padding, stride = ctx.saved
+    def _backward(ctx, gradient: Tensor) -> tuple[Tensor, ...]:
+        x, y = ctx.saved
         dx = np.zeros_like(x)
         for uniq in np.unique(y):
             dx[x == uniq] = np.count_nonzero(y == uniq) * np.mean(gradient[y == uniq])
         return Tensor(dx),
 
+
 class MaxPool2d:
     F_MaxPool2d.__doc__
 
-    def __init__(self, kernelSize: tuple[int, int], /, *, padding: int = 0, stride: int = 1) -> Tensor:
+    def __init__(self, kernelSize: tuple[int, int], /, *, padding: int = 0, stride: int = 1) -> None:
         kernelSize = (kernelSize, kernelSize) if isinstance(kernelSize, int) else kernelSize
         self.kernelSize = kernelSize
         self.padding = padding

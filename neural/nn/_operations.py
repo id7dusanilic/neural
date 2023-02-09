@@ -21,10 +21,10 @@ class Add(_Function):
         return Tensor(add)
 
     @staticmethod
-    def _backward(ctx, gradient: Tensor) -> tuple:
+    def _backward(ctx, gradient: Tensor) -> tuple[Tensor, ...]:
         left, right = ctx.saved
-        gradientLeft = Tensor(gradient*np.ones_like(left))
-        gradientRight = Tensor(gradient*np.ones_like(right))
+        gradientLeft = Tensor(gradient * np.ones_like(left))
+        gradientRight = Tensor(gradient * np.ones_like(right))
 
         def collapseIfNeccesary(x, grad):
             # Broadcasting happened because left.shape != right.shape
@@ -65,7 +65,7 @@ class MatMul(_Function):
         return Tensor(mul)
 
     @staticmethod
-    def _backward(ctx, gradient: Tensor) -> tuple:
+    def _backward(ctx, gradient: Tensor) -> tuple[Tensor, ...]:
         left, right, leftT, rightT = ctx.saved
         gradientLeft = np.dot(gradient, right.T)
         gradientLeft = gradientLeft.T if leftT else gradientLeft
